@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:votingapp/home/bloc/splash_bloc.dart';
 import 'package:votingapp/home/bloc/splash_state.dart';
-import 'package:votingapp/signup/ui.dart';
+import 'package:votingapp/signup/signup.dart';
 
 class Home extends StatelessWidget {
   const Home({Key? key}) : super(key: key);
@@ -18,7 +18,7 @@ class Home extends StatelessWidget {
           if (state is SplashScreenNavigateToLogin) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => SignUp()),
+              MaterialPageRoute(builder: (context) => const SignUp()),
             );
           }
         },

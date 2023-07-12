@@ -29,4 +29,20 @@ class FirebaseAuthMethods {
       print(e);
     }
   }
+
+  //phone signIn
+  // Future<void> phoneSignIn(BuildContext context, String phoneNumber,) async{
+  //   //for android & ISO
+  //   await _auth.verifyPhoneNumber(phoneNumber: phoneNumber, verificationCompleted: (phoneAuthCredential) async{
+  //     await _auth.signInWithCredential(credential);
+  //   },
+  //    verificationFailed: (e){
+  //    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  //       content: Text(e.message!)));
+  //   }, codeSent: ((String verificationId, int? resendToken) async {
+  //     showOTPDialog
+
+  //   }), codeAutoRetrievalTimeout: codeAutoRetrievalTimeout)
+
+  // }
 }

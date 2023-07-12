@@ -1,26 +1,24 @@
-import 'package:email_validator/email_validator.dart';
-import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/material.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:votingapp/auth_services/firebase_auth.dart';
 import 'package:votingapp/login/bloc/LoginBloc.dart';
-import 'package:votingapp/otp_page/otp_page.dart';
-import 'package:votingapp/signup/ui.dart';
+import 'package:votingapp/phone_verification/phone_verification.dart';
+import 'package:votingapp/signup/signup.dart';
 import 'package:votingapp/widgets/textformfield.dart';
 
 class Login extends StatefulWidget {
-  const Login({Key? key}) : super(key: key);
+  final String phoneNumber;
 
+  const Login({Key? key, required this.phoneNumber}) : super(key: key);
   @override
   State<Login> createState() => _LoginState();
 }
 
 class _LoginState extends State<Login> {
-  FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -29,6 +27,15 @@ class _LoginState extends State<Login> {
   bool rememberMe = false;
 
   late LoginBloc _loginBloc;
+
+  bool isPasswordVisible = false;
+
+  // Toggle password visibility
+  void togglePasswordVisibility() {
+    setState(() {
+      isPasswordVisible = !isPasswordVisible;
+    });
+  }
 
   @override
   void initState() {
@@ -49,10 +56,10 @@ class _LoginState extends State<Login> {
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
     if (snapshot.exists) {
       Map<String, dynamic> userData = snapshot.data() as Map<String, dynamic>;
-      String userName = userData['name'];
-      return userName;
+      String? userName = userData['name'] as String?;
+      return userName ?? ''; // Return an empty string if userName is null
     } else {
-      return '';
+      return ''; // Return an empty string if the document does not exist
     }
   }
 
@@ -78,8 +85,8 @@ class _LoginState extends State<Login> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              SizedBox(height: 30),
-              Text(
+              const SizedBox(height: 30),
+              const Text(
                 "Login",
                 textAlign: TextAlign.left,
                 style: TextStyle(
@@ -93,25 +100,37 @@ class _LoginState extends State<Login> {
                 child: Column(
                   children: [
                     MyTextField(
-                      icon: Icon(Icons.email),
-                      hinttext: " abc@gmail.com",
-                      labeltext: "Email",
-                      color: Color.fromRGBO(97, 24, 33, 9),
+                      icon: const Icon(Icons.email),
+                      value: false,
+                      hinttext: 'abc@gmail.com',
+                      labeltext: 'Email',
+                      prefixText: '',
+                      color: const Color.fromRGBO(97, 24, 33, 9),
                       type: TextInputType.emailAddress,
                       action: TextInputAction.next,
                       controller: emailController,
-                      value: false,
+                      suffixIcon: null,
                     ),
                     const SizedBox(height: 20.0),
                     MyTextField(
-                      icon: Icon(Icons.lock),
-                      hinttext: "Password",
-                      labeltext: "Password",
-                      color: Color.fromRGBO(97, 24, 33, 9),
+                      icon: const Icon(Icons.lock),
+                      value: !isPasswordVisible,
+                      hinttext: 'Enter Password',
+                      labeltext: 'Password',
+                      prefixText: '',
+                      color: const Color.fromRGBO(97, 24, 33, 9),
                       type: TextInputType.text,
-                      action: TextInputAction.next,
+                      action: TextInputAction.done,
                       controller: passwordController,
-                      value: true,
+                      suffixIcon: GestureDetector(
+                        onTap: togglePasswordVisibility,
+                        child: Icon(
+                          isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: Colors.grey,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 20.0),
                     Row(
@@ -127,7 +146,7 @@ class _LoginState extends State<Login> {
                                 });
                               },
                             ),
-                            Text(
+                            const Text(
                               'Remember Me',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -136,7 +155,7 @@ class _LoginState extends State<Login> {
                             ),
                           ],
                         ),
-                        Text(
+                        const Text(
                           "Forgot Password?",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -145,7 +164,7 @@ class _LoginState extends State<Login> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 30.0),
+                    const SizedBox(height: 30.0),
                     ElevatedButton(
                       onPressed: () async {
                         try {
@@ -158,6 +177,18 @@ class _LoginState extends State<Login> {
                           if (userCredential.user != null) {
                             String userName =
                                 await fetchUserName(userCredential.user!.uid);
+                            String phoneNumber = '';
+
+                            // Fetch user's phone number from Firebase
+                            DocumentSnapshot userSnapshot =
+                                await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(userCredential.user!.uid)
+                                    .get();
+                            if (userSnapshot.exists) {
+                              phoneNumber =
+                                  userSnapshot['phone number'] as String;
+                            }
 
                             isAdmin = await _loginBloc.isAdmin(
                               emailController.text.toString(),
@@ -167,15 +198,16 @@ class _LoginState extends State<Login> {
                             bool isAdminValue = isAdmin ?? false;
 
                             if (isAdminValue) {
+                              print('Admin');
                               // navigateToAdminSettingsPage(userName);
                             } else {
+                              // Navigate to PhoneVerification with phone number
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => OtpPage(
-                                      // username: userName,
-                                      // isAdmin: isAdminValue,
-                                      ),
+                                  builder: (context) => PhoneVerification(
+                                    phoneNumber: phoneNumber,
+                                  ),
                                 ),
                               );
                             }
@@ -184,21 +216,21 @@ class _LoginState extends State<Login> {
                           print(e);
                         }
                       },
-                      child: Text("Login"),
                       style: ElevatedButton.styleFrom(
-                        textStyle: TextStyle(
+                        textStyle: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16.0,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25.0),
                         ),
-                        minimumSize: Size(350, 50),
-                        backgroundColor: Color.fromRGBO(97, 24, 33, 9),
+                        minimumSize: const Size(350, 50),
+                        backgroundColor: const Color.fromRGBO(97, 24, 33, 9),
                       ),
+                      child: const Text("Login"),
                     ),
                     const SizedBox(height: 10.0),
-                    Row(
+                    const Row(
                       children: [
                         Expanded(
                           child: Divider(
@@ -260,13 +292,13 @@ class _LoginState extends State<Login> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
+                        const Text(
                           "Don't have an account?",
                           style: TextStyle(
                             color: Color.fromRGBO(97, 24, 33, 9),
                           ),
                         ),
-                        SizedBox(width: 5.0),
+                        const SizedBox(width: 5.0),
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -276,7 +308,7 @@ class _LoginState extends State<Login> {
                               ),
                             );
                           },
-                          child: Text(
+                          child: const Text(
                             "Sign Up",
                             style: TextStyle(
                               color: Color.fromRGBO(97, 24, 33, 9),
